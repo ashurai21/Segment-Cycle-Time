@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Segment Process Entry (Hours)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input, button {
+      padding: 5px;
+      margin: 5px;
+    }
+    .step {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 6px;
+    }
+    table {
+      margin-top: 20px;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Segment Process Entry</h2>
+
+  <label>Segment Name: </label>
+  <input type="text" id="segmentName"><br>
+
+  <label>Number of Steps: </label>
+  <input type="number" id="stepCount" min="1"><br>
+
+  <button onclick="generateForm()">Generate Steps</button>
+
+  <form id="stepsForm"></form>
+
+  <button onclick="submitSegment()">Submit Segment</button>
+
+  <h3>Segment Process Table (All values in hours)</h3>
+  <table id="dataTable">
+    <thead id="tableHead">
+      <tr>
+        <th>Step No.</th>
+        <th>Waiting Time (hrs)</th>
+        <th>Activity Name</th>
+        <th>Activity Duration (hrs)</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+    <tfoot id="tableFooter">
+      <tr>
+        <td colspan="3"><strong>Total Cycle Time (hrs)</strong></td>
+        <td id="totalCycleTime">0</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script>
+    let segmentCount = 0;
+    const allSegments = [];
+
+    function generateForm() {
+      const stepCount = parseInt(document.getElementById('stepCount').value);
+      const form = document.getElementById('stepsForm');
+      form.innerHTML = '';
+
+      for (let i = 1; i <= stepCount; i++) {
+        const div = document.createElement('div');
+        div.className = 'step';
+        div.innerHTML = `
+          <h4>Process Step ${i}</h4>
+          ${i > 1 ? `
+            <label>Waiting Time before this step (hrs): </label>
+            <input type="number" name="waiting${i}" min="0" step="0.1" value="0"><br>
+          ` : ''}
+          <label>Activity Name: </label>
+          <input type="text" name="activityName${i}" required><br>
+          <label>Activity Duration (hrs): </label>
+          <input type="number" name="duration${i}" min="0.1" step="0.1" required><br>
+        `;
+        form.appendChild(div);
+      }
+    }
+
+    function submitSegment() {
+      const segment = document.getElementById('segmentName').value.trim();
+      const stepCount = parseInt(document.getElementById('stepCount').value);
+
+      if (!segment || !stepCount) {
+        alert("Please enter segment name and number of steps.");
+        return;
+      }
+
+      segmentCount++;
+      allSegments.push(segment);
+
+      const colIndex = segmentCount;
+      const table = document.getElementById('dataTable');
+      const thead = document.getElementById('tableHead');
+      const tbody = document.getElementById('tableBody');
+      const tfoot = document.getElementById('tableFooter');
+
+      // Add header for the new segment if not already present
+      if (thead.rows[0].cells.length < 4 + segmentCount) {
+        const header = document.createElement('th');
+        header.textContent = `Segment: ${segment}`;
+        thead.rows[0].appendChild(header);
+      }
+
+      // Update rows or add new ones
+      for (let i = 1; i <= stepCount; i++) {
+        const activityName = document.querySelector(`[name=activityName${i}]`).value;
+        const duration = parseFloat(document.querySelector(`[name=duration${i}]`).value);
+        const waiting = i > 1 ? parseFloat(document.querySelector(`[name=waiting${i}]`).value || "0") : 0;
+
+        let row = tbody.rows[i - 1];
+        if (!row) {
+          row = tbody.insertRow();
+          row.insertCell().textContent = i;
+          row.insertCell().textContent = i > 1 ? waiting : 0;
+          row.insertCell().textContent = activityName;
+          row.insertCell().textContent = duration;
+        }
+
+        // Add the segment cycle time stepwise in new column
+        const totalForStep = waiting + duration;
+        const newCell = row.insertCell(-1);
+        newCell.textContent = totalForStep.toFixed(2);
+      }
+
+      // Calculate and display total cycle time for this segment
+      let totalCycleTime = 0;
+      for (let i = 1; i <= stepCount; i++) {
+        const duration = parseFloat(document.querySelector(`[name=duration${i}]`).value);
+        const waiting = i > 1 ? parseFloat(document.querySelector(`[name=waiting${i}]`).value || "0") : 0;
+        totalCycleTime += duration + waiting;
+      }
+
+      // Add new column in footer for total cycle time
+      const footerCell = document.createElement('td');
+      footerCell.textContent = totalCycleTime.toFixed(2);
+      tfoot.rows[0].appendChild(footerCell);
+
+      // Reset form
+      document.getElementById('segmentName').value = '';
+      document.getElementById('stepCount').value = '';
+      document.getElementById('stepsForm').innerHTML = '';
+    }
+  </script>
+
+</body>
+</html>
